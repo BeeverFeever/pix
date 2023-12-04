@@ -1,0 +1,12 @@
+#!/bin/env bash
+set -xe
+
+CC="gcc"
+SOURCES=$(find . -type f -name *.c)
+CFLAGS="-Wall"
+LD_FLAGS="-Llib -lglfw3 -lglad -lm"
+INCLUDES="-I. -include defines.h"
+OUT_DIR="."
+
+$CC $SOURCES $CFLAGS -o $OUT_DIR/main $INCLUDES $LD_FLAGS 
+$OUT_DIR/main
