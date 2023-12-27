@@ -31,9 +31,10 @@ Camera camera_create()
 void camera_move(Camera* cam, vec3 movement)
 {
     // could be done with cglm but I couldn't find a way without excessive code
-    cam->position[0] += movement[0];
-    cam->position[1] += movement[1];
-    cam->position[2] += movement[2];
+    glm_vec3_add(cam->position, movement, cam->position);
+    /* cam->position[0] += movement[0]; */
+    /* cam->position[1] += movement[1]; */
+    /* cam->position[2] += movement[2]; */
 }
 
 void camera_move_to(Camera* cam, vec3 position)

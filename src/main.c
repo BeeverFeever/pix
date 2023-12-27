@@ -5,36 +5,40 @@
 #include "glad.h"
 #include <GLFW/glfw3.h>
 
+#define CGLM_DEFINE_PRINTS
 #include <cglm/cglm.h>
 
-#include "application.h"
 #include "shader.h"
+#include "camera.h"
 
-void glm_vec3_mulsub(vec3 a, float s, vec3 dest) {
-  dest[0] -= a[0] * s;
-  dest[1] -= a[1] * s;
-  dest[2] -= a[2] * s;
-}
-
+typedef struct {
+    float dt;
+    float last_frame;
+    Camera main_cam;
+} Scene;
 
 typedef struct {
     float verticies;
     int   indicies;
 } Model;
 
-void process_input(GLFWwindow* window, Application* app) {
+void process_input(GLFWwindow* window, Scene* scene) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        glm_vec3_muladds(app->main_cam.front, app->main_cam.speed, app->main_cam.position);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        puts("this should be working");
+        glm_vec3_print(scene->main_cam.position, stderr);
+        glm_vec3_muladds(scene->main_cam.front, scene->main_cam.speed, scene->main_cam.position);
+        glm_vec3_print(scene->main_cam.position, stderr);
+    }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        glm_vec3_mulsub(app->main_cam.front, app->main_cam.speed, app->main_cam.position);
+        glm_vec3_mulsubs(scene->main_cam.front, scene->main_cam.speed, scene->main_cam.position);
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        glm_vec3_muladds(app->main_cam.right, app->main_cam.speed, app->main_cam.position);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        glm_vec3_mulsub(app->main_cam.right, app->main_cam.speed, app->main_cam.position);
+    /* if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) */
+    /*     glm_vec3_muladds(scene->main_cam.right, scene->main_cam.speed, scene->main_cam.position); */
+    /* if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) */
+    /*     glm_vec3_mulsubs(scene->main_cam.right, scene->main_cam.speed, scene->main_cam.position); */
 }
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -90,13 +94,17 @@ GLFWwindow* init_window(int w, int h, const char* name) {
 
 int main(void) 
 {
-    Application app = app_create("pix - opengl testing");
-
     int width  = 800;
     int height = 600;
 
     GLFWwindow* win = init_window(width, height, "testing");
     create_context(win);
+
+    Scene scene = {
+        .dt = 0,
+        .last_frame = 0,
+        .main_cam = camera_create(),
+    };
 
     ShaderProgram shader_program = shaderprogram_create("shaders/vertshader.glsl", "shaders/fragshader.glsl");
 
@@ -195,13 +203,13 @@ int main(void)
     while (!glfwWindowShouldClose(win)) {
         // delta time
         float current_time = glfwGetTime();
-        app.dt = current_time - app.last_frame;
-        app.last_frame = current_time;
+        scene.dt = current_time - scene.last_frame;
+        scene.last_frame = current_time;
 
         // make camera speed the same on all devices
-        /* app.main_cam.speed *= app.dt; */
+        /* scene.main_cam.speed *= scene.dt; */
 
-        process_input(win, &app);
+        process_input(win, &scene);
 
         glClearColor(0.8f, 0.8f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -212,13 +220,13 @@ int main(void)
         mat4 align model = GLM_MAT4_IDENTITY_INIT;
         /* mat4 align view  = GLM_MAT4_IDENTITY_INIT; */
 
-        glm_lookat(app.main_cam.position, app.main_cam.target, app.main_cam.up, app.main_cam.view);
-        /* glm_translate(cam.view, (vec3){0.0f, 0.0f, -3.0f}); */
-        /* uniform_set_mat4(shader_program, "view", cam.view); */
+        glm_lookat(scene.main_cam.position, scene.main_cam.target, scene.main_cam.up, scene.main_cam.view);
+        /* glm_translate(scene.main_cam.view, (vec3){0.0f, 0.0f, -3.0f}); */
+        /* uniform_set_mat4(shader_program, "view", (float*)scene.main_cam.view); */
         /* glm_translate(model, (vec3){0.0f, 0.0f, 0.0f}); */
         /* uniform_set_mat4(shader_program, "model", model); */
 
-        uniform_set_mat4(shader_program, "view", *app.main_cam.view);
+        uniform_set_mat4(shader_program, "view", *scene.main_cam.view);
 
         // --- object transformations here
         /* glm_rotate(model, glm_rad(-55.0f), (vec3){1.0f, 0.0f, 0.0f}); */
