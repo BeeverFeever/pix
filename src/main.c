@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
 #include "glad.h"
 #include <GLFW/glfw3.h>
 
@@ -10,101 +6,34 @@
 
 #include "shader.h"
 #include "camera.h"
+#include "init.h"
 
-typedef struct {
-    float dt;
-    float last_frame;
-    Camera main_cam;
-} Scene;
+float dt = 0;
+float last_frame = 0;
 
-typedef struct {
-    float verticies;
-    int   indicies;
-} Model;
+Camera cam;
 
-void process_input(GLFWwindow* window, Scene* scene) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        puts("this should be working");
-        glm_vec3_print(scene->main_cam.position, stderr);
-        glm_vec3_muladds(scene->main_cam.front, scene->main_cam.speed, scene->main_cam.position);
-        glm_vec3_print(scene->main_cam.position, stderr);
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        glm_vec3_mulsubs(scene->main_cam.front, scene->main_cam.speed, scene->main_cam.position);
-
-    /* if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) */
-    /*     glm_vec3_muladds(scene->main_cam.right, scene->main_cam.speed, scene->main_cam.position); */
-    /* if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) */
-    /*     glm_vec3_mulsubs(scene->main_cam.right, scene->main_cam.speed, scene->main_cam.position); */
-}
-
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-void create_context(GLFWwindow* win) {
-    glfwMakeContextCurrent(win);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        fprintf(stderr, "Failed to initialise GLEW\n");
-        exit(1);
-    }
-
-    glfwSetFramebufferSizeCallback(win, framebuffer_size_callback);
-}
-
-GLFWwindow* init_window(int w, int h, const char* name) {
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialise GLFW\n");
-        exit(1);
-    }
-
-    glfwWindowHint(GLFW_SAMPLES, 4); // 4x antialiasing
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    GLFWwindow* win;
-    win = glfwCreateWindow(w, h, name, NULL, NULL);
-    if (win == NULL) {
-        fprintf(stderr, "Failed to open glfw window\n");
-        glfwTerminate();
-        exit(1);
-    }
-
-    glfwMakeContextCurrent(win);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        fprintf(stderr, "Failed to initialise GLEW\n");
-        exit(1);
-    }
-
-    glViewport(0, 0, h, w);
-    glfwSetFramebufferSizeCallback(win, framebuffer_size_callback);
-
-    return win;
-}
-
-int main(void) 
+void process_input(GLFWwindow* win)
 {
-    int width  = 800;
-    int height = 600;
+    if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(win, true);
+
+    camera_keyboard_callback(win, &cam, dt);
+}
+
+void process_mouse(GLFWwindow* win)
+{
+    camera_mouse_callback(win, &cam, )
+}
+
+int main(void)
+{
+    int width  = 1920;
+    int height = 1080;
 
     GLFWwindow* win = init_window(width, height, "testing");
     create_context(win);
-
-    Scene scene = {
-        .dt = 0,
-        .last_frame = 0,
-        .main_cam = camera_create(),
-    };
+    camera_init(&cam);
 
     ShaderProgram shader_program = shaderprogram_create("shaders/vertshader.glsl", "shaders/fragshader.glsl");
 
@@ -145,18 +74,18 @@ int main(void)
 
     uint vao, vbo, ebo;
 
-    // generate the buffers 
-    glGenBuffers(1, &vbo); 
-    glGenBuffers(1, &ebo); 
-    glGenVertexArrays(1, &vao); 
+    // generate the buffers
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+    glGenVertexArrays(1, &vao);
 
-    glBindVertexArray(vao); 
+    glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo); 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW); 
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo); 
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW); 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
 
     int pos_attr = 0;
 
@@ -174,63 +103,35 @@ int main(void)
     glVertexAttribPointer(colour_attr, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(colour_attr);
 
-    /* vec3 cam_pos = {0.0f, 0.0f, 3.0f}; */
-    /* vec3 cam_target = {0.0f, 0.0f, 0.0f}; */
-    /* vec3 cam_direction;  */
-    /* glm_vec3_sub(cam_pos, cam_target, cam_direction); */
-    /* glm_vec3_normalize(cam_direction); */
-    /**/
-    /* vec3 up = {0.0f, 1.0f, 0.0f}; */
-    /* vec3 cam_right; */
-    /* glm_vec3_cross(up, cam_direction, cam_right); */
-    /* glm_vec3_normalize(cam_right); */
-    /**/
-    /* vec3 cam_up; */
-    /* glm_vec3_cross(up, cam_direction, cam_up); */
-    /**/
-
-    int fov = 45.0f;
-
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
     shaderprogram_activate(shader_program);
 
     mat4 align proj  = GLM_MAT4_IDENTITY_INIT;
-    glm_perspective(glm_rad(fov), (float)width / (float)height, 0.1f, 100.0f, proj);
+    glm_perspective(glm_rad(cam.fov), (float)width / (float)height, 0.1f, 100.0f, proj);
     uniform_set_mat4(shader_program, "proj", *proj);
 
+    cam.speed = 0.2f;
     while (!glfwWindowShouldClose(win)) {
         // delta time
         float current_time = glfwGetTime();
-        scene.dt = current_time - scene.last_frame;
-        scene.last_frame = current_time;
+        dt = current_time - last_frame;
+        last_frame = current_time;
 
-        // make camera speed the same on all devices
-        /* scene.main_cam.speed *= scene.dt; */
-
-        process_input(win, &scene);
+        // input
+        process_input(win);
 
         glClearColor(0.8f, 0.8f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // ----- program in here ----- // 
+        // ----- program in here ----- //
         shaderprogram_activate(shader_program);
 
+        camera_update_view_matrix(&cam);
+        uniform_set_mat4(shader_program, "view", *cam.view);
+
         mat4 align model = GLM_MAT4_IDENTITY_INIT;
-        /* mat4 align view  = GLM_MAT4_IDENTITY_INIT; */
-
-        glm_lookat(scene.main_cam.position, scene.main_cam.target, scene.main_cam.up, scene.main_cam.view);
-        /* glm_translate(scene.main_cam.view, (vec3){0.0f, 0.0f, -3.0f}); */
-        /* uniform_set_mat4(shader_program, "view", (float*)scene.main_cam.view); */
-        /* glm_translate(model, (vec3){0.0f, 0.0f, 0.0f}); */
-        /* uniform_set_mat4(shader_program, "model", model); */
-
-        uniform_set_mat4(shader_program, "view", *scene.main_cam.view);
-
-        // --- object transformations here
-        /* glm_rotate(model, glm_rad(-55.0f), (vec3){1.0f, 0.0f, 0.0f}); */
-        // ---
         uniform_set_mat4(shader_program, "model", *model);
 
         glBindVertexArray(vao);

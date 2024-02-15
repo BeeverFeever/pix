@@ -93,7 +93,7 @@ static FILE* _open_file(char* path, char* mode) {
         fprintf(stderr, "ERROR: could not open %s\n%s", path, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    return in; 
+    return in;
 }
 
 static char* _read_file(char* path) {
